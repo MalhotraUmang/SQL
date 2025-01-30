@@ -558,23 +558,75 @@ ORDER BY Profit DESC;
 SQL joins
 *********************************************************/
 
+-- Print the product categories and subcategories along with the profits made for each order.
+SELECT Ord_id, Prod_id, Product_Category, Product_Sub_Category, Profit			# All required attributes selected, common attribute can be taken without table alias
+FROM prod_dimen																	# Refernce to a table
+INNER JOIN market_fact_full														# Inner join with another table
+USING (Prod_id);																# Common attribute between both tables
 
+-- using table aliases and ON clause instead of USING clause
+SELECT Ord_id, p.Prod_id, Product_Category, Product_Sub_Category, Profit		# All required attributes selected, common attribute needs to be taken with table alias
+FROM prod_dimen p																# Refernce to a table
+INNER JOIN market_fact_full m													# Inner join with another table
+ON p.Prod_id = m.Prod_id;														# Common attribute between both tables
 
+-- Find the shipment date, mode and profit made for every single order.
+SELECT Ord_id, Ship_Date, Ship_Mode, Profit
+FROM shipping_dimen s
+INNER JOIN market_fact_full m
+ON s.Ship_id = m.Ship_id;
 
+-- Print the shipment mode, profit made and product category for each product.
+SELECT Prod_id, Product_Category, Ship_Mode, Profit								# All required attributes selected
+FROM prod_dimen																	# Refernce to a table
+INNER JOIN market_fact_full USING (Prod_id)										# Inner join with another table on a common attribute
+INNER JOIN shipping_dimen USING (Ship_id);										# Inner join with another table on a common attribute
 
+-- Which customer ordered the most number of products?
+SELECT Customer_Name, SUM(Order_Quantity) AS orders
+FROM cust_dimen
+INNER JOIN market_fact_full
+USING (Cust_id)
+GROUP BY Customer_Name															# grouping by a non-aggregated attribute
+ORDER BY orders DESC;															# ordering by an aggregated attribute
 
+-- Selling office supplies was more profitable in Delhi as compared to Patna. True or false?
+SELECT City, SUM(Profit) AS city_wise_profit
+FROM cust_dimen
+INNER JOIN market_fact_full
+USING (Cust_id)
+INNER JOIN prod_dimen
+USING (Prod_id)
+WHERE Product_Category = 'OFFICE SUPPLIES' AND City IN ('Delhi', 'Patna')
+GROUP BY City;
 
+-- Print the three most common products.
+SELECT Product_Category, Product_Sub_Category, SUM(Order_Quantity) AS prod_orders
+FROM prod_dimen
+INNER JOIN market_fact_full
+USING (Prod_id)
+GROUP BY Product_Category, Product_Sub_Category					# grouping by a non-aggregated attribute
+ORDER BY prod_orders DESC										# ordering by an aggregated attribute
+LIMIT 3;
 
+-- including Prod_id
+SELECT Prod_id, Product_Category, Product_Sub_Category, SUM(Order_Quantity) AS prod_orders
+FROM prod_dimen
+INNER JOIN market_fact_full
+USING (Prod_id)
+GROUP BY Prod_id					# grouping by a non-aggregated attribute
+ORDER BY prod_orders DESC			# ordering by an aggregated attribute
+LIMIT 3;
 
+-- View and joins together : Which year generated the highest profit?
 
+-- Without using a view
+SELECT Ord_id, YEAR(Order_Date), Profit
+FROM orders_dimen
+JOIN market_fact_full USING(Ord_id)
+ORDER BY Profit DESC;
 
-
-
-
-
-
-
-
+-- Using a view -> to be worked on
 
 
 
