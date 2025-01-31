@@ -2160,6 +2160,16 @@ FROM (
 	HAVING no_of_stores > 1 ) AS cust_to_store;
 # 101 customers associated with more than 1 store id
 
+-- alternative approach
+SELECT
+  COUNT(customer_id)
+FROM
+  (SELECT customer_id, COUNT(DISTINCT store_id) AS store_count
+  FROM sales_fact
+  GROUP BY customer_id
+  HAVING COUNT(DISTINCT store_id) > 1) AS a;
+# same answer i.e. all 101 customers ordered from more than 1 store
+
 -- unique customer ids
 SELECT COUNT(DISTINCT customer_id) FROM sales_fact;
 # 101 unique customer ids
@@ -2183,8 +2193,24 @@ FROM branch_details b
 INNER JOIN sales_fact s
 ON b.store_id = s.store_id
 GROUP BY b.city
-ORDER BY order_count DESC;
+ORDER BY order_count DESC
+LIMIT 1;
 # Bengaluru, Mumbai and Gurgaon have 275, 167 and 108 orders respectively
+
+-- alternative approach
+SELECT
+  city, order_count
+FROM
+  (SELECT
+     city, COUNT(DISTINCT order_id) AS order_count
+   FROM
+     sales_fact AS fact
+   INNER JOIN branch_details AS branch
+   ON fact.store_id = branch.store_id
+   GROUP BY city
+   ORDER BY COUNT(DISTINCT order_id) DESC) AS a
+LIMIT 1;
+# same answer i.e. Bengaluru has highest orders as 275
 
 # Note: 275 + 167 + 108 becomes 550 order overall.
 
@@ -2208,6 +2234,24 @@ ORDER BY sale_amount DESC
 LIMIT 1;
 # Conclusion: Indiranagar has highest sales of 21,423.00
 
+-- better approach considering order quantity
+SELECT
+  area, sales
+FROM
+  (SELECT
+    area, SUM(sale_price * quantity_ordered) AS sales
+    FROM
+    sales_fact AS fact
+    INNER JOIN branch_details AS branch
+    ON fact.store_id = branch.store_id
+    INNER JOIN order_product_mapping AS ord_prod
+    ON fact.order_id = ord_prod.order_id
+    INNER JOIN product_info AS prod
+    ON ord_prod.product_id = prod.product_id
+    GROUP BY area
+    ORDER BY SUM(sale_price * quantity_ordered) DESC) AS a
+LIMIT 1;
+# Conclusion: Indiranagar has highest sales of 1,12,019.00
 
 -- 5. Which state has the highest number of customers?
 
@@ -2241,5 +2285,17 @@ ORDER BY unique_customer_count DESC
 LIMIT 1;
 # Conclusion: Karnataka has 97 customers associated with it.
 
-
-
+-- alternative approach
+SELECT
+  state, cust_count
+FROM
+  (SELECT
+    state, COUNT(DISTINCT customer_id) AS cust_count
+    FROM
+    sales_fact AS fact
+    INNER JOIN branch_details AS branch
+    ON fact.store_id = branch.store_id
+    GROUP BY state
+    ORDER BY COUNT(DISTINCT customer_id) DESC) AS a
+LIMIT 1;
+# same answer i.e. Karnataka has 97 customers
