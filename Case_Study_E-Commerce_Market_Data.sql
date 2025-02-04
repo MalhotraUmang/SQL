@@ -582,6 +582,11 @@ FROM prod_dimen																	# Refernce to a table
 INNER JOIN market_fact_full USING (Prod_id)										# Inner join with another table on a common attribute
 INNER JOIN shipping_dimen USING (Ship_id);										# Inner join with another table on a common attribute
 
+-- using multiple table references in FROM and multiple conditions in WHERE, instead of JOIN approach
+SELECT p.Prod_id, p.Product_Category, s.Ship_Mode, m.Profit						# All required attributes selected
+FROM prod_dimen	p, market_fact_full m, shipping_dimen s							# Refernces to all tables with aliases
+WHERE p.Prod_id = m.Prod_id AND	s.Ship_id = m.Ship_id;							# WHERE clause with multiple conditions on common attributes among tables
+
 -- Which customer ordered the most number of products?
 SELECT Customer_Name, SUM(Order_Quantity) AS orders
 FROM cust_dimen
@@ -617,6 +622,36 @@ USING (Prod_id)
 GROUP BY Prod_id					# grouping by a non-aggregated attribute
 ORDER BY prod_orders DESC			# ordering by an aggregated attribute
 LIMIT 3;
+
+-- List all the product categories, sub-categories along with profits made
+
+-- using INNER JOIN with only common product IDs in both tables
+SELECT p.Product_Category, p.Product_Sub_Category, SUM(m.Profit) AS prod_wise_profit
+FROM prod_dimen p INNER JOIN market_fact_full m USING (Prod_id)
+GROUP BY p.Product_Category, p.Product_Sub_Category
+ORDER BY prod_wise_profit DESC;
+# The outcome indicates the product categories and sub-categories which are being sold/ordered regardless of a profit or loss
+
+-- using LEFT OUTER JOIN with all the product IDs in prod_dimen table
+SELECT p.Product_Category, p.Product_Sub_Category, SUM(m.Profit) AS prod_wise_profit
+FROM prod_dimen p LEFT JOIN market_fact_full m USING (Prod_id)
+GROUP BY p.Product_Category, p.Product_Sub_Category
+ORDER BY prod_wise_profit DESC;
+# There seem to be a few product_category to product_sub_category combinations which are not being ordered/sold
+
+-- using RIGHT OUTER JOIN with all the product IDs in market_fact_full table
+SELECT p.Product_Category, p.Product_Sub_Category, SUM(m.Profit) AS prod_wise_profit
+FROM prod_dimen p RIGHT OUTER JOIN market_fact_full m USING (Prod_id)
+GROUP BY p.Product_Category, p.Product_Sub_Category
+ORDER BY prod_wise_profit DESC;
+# Note: The outcome of RIGHT OUTER JOIN here is same as the outecome of INNER JOIN as the product IDs in market_fact_full table are a subset of product IDs in prod_dimen table
+
+-- List number of product categories and sub-categories combinations
+-- using LEFT OUTER JOIN with all the product IDs in prod_dimen table
+SELECT p.Product_Category, p.Product_Sub_Category, COUNT(m.Market_fact_id) AS prod_wise_orders
+FROM prod_dimen p LEFT JOIN market_fact_full m USING (Prod_id)
+GROUP BY p.Product_Category, p.Product_Sub_Category
+ORDER BY prod_wise_orders DESC;
 
 -- View and joins together : Which year generated the highest profit?
 
