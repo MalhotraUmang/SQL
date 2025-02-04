@@ -555,7 +555,7 @@ ORDER BY Profit DESC;
 
 
 /********************************************************
-SQL joins
+SQL joins: INNER, OUTER, LEFT, RIGHT, CROSS
 *********************************************************/
 
 -- Print the product categories and subcategories along with the profits made for each order.
@@ -621,12 +621,161 @@ LIMIT 3;
 -- View and joins together : Which year generated the highest profit?
 
 -- Without using a view
-SELECT Ord_id, YEAR(Order_Date), Profit
+SELECT YEAR(Order_Date) AS order_year, SUM(Profit) AS profit_per_year
 FROM orders_dimen
-JOIN market_fact_full USING(Ord_id)
-ORDER BY Profit DESC;
+JOIN market_fact_full USING(Ord_id)				# both the relevant tables are joined
+GROUP BY order_year								# year-wise profit
+ORDER BY profit_per_year DESC					# highest to lowest profit
+LIMIt 1;										# top 1 profit information
 
--- Using a view -> to be worked on
+-- Creating and using a view:
+DROP VIEW IF EXISTS market_fact_and_orders;
+CREATE VIEW market_fact_and_orders AS
+	SELECT *
+    FROM market_fact_full
+    INNER JOIN orders_dimen
+    USING (Ord_id);								# both the relevant tables are joined
+
+SELECT Year(Order_Date) AS order_year, SUM(Profit) AS profit_per_year
+FROM market_fact_and_orders
+GROUP BY order_year								# year-wise profit
+ORDER BY profit_per_year DESC					# highest to lowest profit
+LIMIT 1;										# top 1 profit information
+
+-- Return the order ids which are present in the market facts table.
+-- Left Outer Join
+SELECT Ord_id
+FROM orders_dimen			# orders_dimen is taken as left table for left outer join
+LEFT JOIN market_fact_full
+USING (Ord_id)
+GROUP BY Ord_id
+ORDER BY Ord_id;
+
+-- Right Outer Join
+SELECT Ord_id
+FROM market_fact_full
+RIGHT JOIN orders_dimen		# orders_dimen is taken as right table for same results using right outer join
+USING (Ord_id)
+GROUP BY Ord_id
+ORDER BY Ord_id;
 
 
+
+/********************************************************
+SQL set operations: UNION, UNION ALL, INTERSECT, MINUS
+*********************************************************/
+-- 1. Combine the order numbers for orders and order ids for all shipments in a single column.
+SELECT COUNT(Order_Number) FROM orders_dimen;
+# 5506 order ids in orders_dimen
+SELECT COUNT(DISTINCT Order_Number) FROM orders_dimen;
+# 5496 unique order ids in orders_dimen
+
+SELECT COUNT(Order_Number) FROM shipping_dimen;
+# 7701 order ids in shipping_dimen
+SELECT COUNT(DISTINCT Order_Number) FROM shipping_dimen;
+# 5496 unique order ids in shipping_dimen
+
+-- UNION
+SELECT COUNT(*) FROM (
+SELECT Order_Number FROM orders_dimen
+UNION
+SELECT Order_Number FROM shipping_dimen
+) AS Order_Numbers;
+# 5496 orders in result from UNION
+
+-- UNION ALL
+SELECT COUNT(*) FROM (
+SELECT Order_Number FROM orders_dimen
+UNION ALL
+SELECT Order_Number FROM shipping_dimen
+) AS Order_Numbers;
+# 5506+7701 = 13207 orders in result from UNION ALL
+
+-- All Order Numbers from both the tables
+SELECT Order_Number FROM (
+SELECT Order_Number FROM orders_dimen
+UNION ALL
+SELECT Order_Number FROM shipping_dimen
+) AS Order_Numbers;
+
+-- INTERSECT: Not supported in MySQL. Implemented using INNER JOIN and DISTINCT
+SELECT COUNT(DISTINCT Order_Number) FROM (			# unique order numbers
+SELECT Order_Number FROM orders_dimen
+INNER JOIN shipping_dimen
+USING (Order_Number)								# both tables are joined with common order numbers
+) AS Order_Numbers;
+# 5496 orders in result from the intersection
+
+-- Order Numbers present in both tables using inner join method
+SELECT DISTINCT Order_Number FROM (					# unique order numbers
+	SELECT Order_Number FROM orders_dimen
+	INNER JOIN shipping_dimen
+	USING (Order_Number)								# both tables are joined with common order numbers
+) AS Order_Numbers
+ORDER BY Order_Number;
+
+-- INTERSECT: Not supported in MySQL. Implemented using IN and SUBQUERY
+SELECT COUNT(DISTINCT Order_Number) FROM (			# unique orders numbers
+	SELECT Order_Number FROM orders_dimen			# order numbers from orders_dimen
+	WHERE Order_Number IN (
+		SELECT Order_Number FROM shipping_dimen		# order numbers from shipping_dimen
+        )
+) AS common_order_numbers;							# both tables are clubbed with common order numbers
+# 5496 orders in result from the intersection
+
+-- Order Numbers present in both tables using subquery method
+SELECT DISTINCT Order_Number FROM (					# unique orders numbers
+	SELECT Order_Number FROM orders_dimen			# order numbers from orders_dimen
+	WHERE Order_Number IN (
+		SELECT Order_Number FROM shipping_dimen		# order numbers from shipping_dimen
+        )
+) AS common_order_numbers							# both tables are clubbed with common order numbers
+ORDER BY Order_Number;
+
+# Note: UNION and INTERSECTION results show same number of order numbers
+# It means that there are equal number of unique order numbers in both the tables
+
+-- Order Numbers present in both tables using subquery method, another approach
+SELECT DISTINCT Order_Number FROM orders_dimen			# unique order numbers from orders_dimen
+WHERE Order_Number IN (SELECT DISTINCT Order_Number FROM shipping_dimen);
+
+
+-- MINUS: Not supported in MySQL. Implemented with NOT IN
+SELECT Order_Number FROM orders_dimen
+WHERE Order_Number NOT IN (SELECT Order_Number FROM shipping_dimen);
+# There are no order numbers in orders_dimen which are not present in shipping_dimen
+
+SELECT Order_Number FROM shipping_dimen
+WHERE Order_Number NOT IN (SELECT Order_Number FROM orders_dimen);
+# There are no order numbers in shipping_dimen which are not present in orders_dimen
+
+
+-- 2. What are the two most and the two least profitable products?
+
+-- 2 most profitable products
+SELECT Prod_id, SUM(Profit) AS prod_wise_profits
+FROM market_fact_full
+GROUP BY Prod_id
+ORDER BY prod_wise_profits DESC
+LIMIT 2;
+
+-- 2 least profitable products
+SELECT Prod_id, SUM(Profit) AS prod_wise_profits
+FROM market_fact_full
+GROUP BY Prod_id
+ORDER BY prod_wise_profits ASC
+LIMIT 2;
+
+-- 2 most and 2 least profitable products combined
+(SELECT Prod_id, SUM(Profit) AS prod_wise_profits
+FROM market_fact_full
+GROUP BY Prod_id
+ORDER BY prod_wise_profits DESC
+LIMIT 2)													# 2 most profitable products
+UNION														# 2 most and 2 least profitable products union'ed
+(SELECT Prod_id, SUM(Profit) AS prod_wise_profits
+FROM market_fact_full
+GROUP BY Prod_id
+ORDER BY prod_wise_profits ASC
+LIMIT 2);													# 2 least profitable products
 
