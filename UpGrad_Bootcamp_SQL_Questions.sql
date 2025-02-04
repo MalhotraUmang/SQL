@@ -74,3 +74,120 @@ INNER JOIN away a									# inner join with away table
 ON h.opponent = a.opponent							# common attribute is opponent
 WHERE (h.goals_scored >= h.goals_conceded) AND 		# condition 1: goals scored should be greater than or equal to goals conceded on home ground, >= bcoz points can be awarded with a winning or draw case
 		(a.goals_scored >= a.goals_conceded);		# condition 1: goals scored should be greater than or equal to goals conceded on away ground, >= bcoz points can be awarded with a winning or draw case
+
+
+
+/******************************
+Cars Classic Model Questions 
+-----------------------------
+Cars_Classic_Models_ERD.png
+******************************/
+
+# Question 1: Details of Employees:
+/*
+Write a query to return the employee number, first name and last name of all the employees. 
+Order the employees in the alphabetical order of their first names.
+
+Sample Output:
+employeeNumber 	| firstName	| lastName
+1002			| Diane		| Murphy
+*/
+SELECT employeeNumber, firstName, lastName
+FROM employees
+ORDER BY firstName;
+
+# Question 2: Employee Email IDs:
+/*
+Write a query to return the email ids of all the employees in the increasing order of their employee numbers.
+*/
+SELECT email
+FROM employees
+ORDER BY employeeNumber;
+
+# Question 3: Employees with a Specific Office Code:
+/*
+Write a query to retrieve the first names and last names of all the employees having an office code of 4. 
+Arrange them in the alphabetical order of their last names.
+
+Sample Output:
+firstName	| lastName
+Diane		| Murphy
+*/
+SELECT firstName, lastName
+FROM employees
+WHERE officeCode = 4
+ORDER BY lastName;
+
+# Question 4: All Employee Details:
+/*
+Write a query to retrieve the entire data of all the employees from the employees table. 
+Arrange them in the alphabetical order of their first names.
+*/
+SELECT *
+FROM employees
+ORDER BY firstName;
+
+# Question 5: Filtered Employees:
+/*
+Write a query to retrieve the email addresses of all the employees who have an office code of 6 and 
+report to employees with code '1088'. 
+
+Arrange these employees in the increasing order of their employee numbers.
+*/
+SELECT email
+FROM employees
+WHERE officeCode = 6 AND reportsTo = '1088'
+ORDER BY employeeNumber;
+
+# Question 6: More Filtered Employees:
+/*
+Write a query to retrieve the email addresses of all the employees who have an office code of 6 or 
+report to employees with employee number '1088'. 
+
+Arrange them in the reverse alphabetical order of their first names.
+*/
+SELECT email
+FROM employees
+WHERE officeCode = 6 OR reportsTo = '1088'
+ORDER BY firstName DESC;
+
+# Question 7: Employees from Specific Office Codes:
+/*
+Write a query to retrieve all the details of all the employees who have an office code from 2 to 4. 
+Arrange them in the alphabetical order of their first names.
+*/
+SELECT *
+FROM employees
+WHERE officeCode BETWEEN 2 AND 4
+ORDER BY firstName;
+
+# Question 8: Employees with Odd-Numbered Office Codes:
+/*
+Write a query to retrieve the extensions and office codes of all the employees having an odd-numbered office code. 
+Arrange them in the alphabetical order of their first names.
+*/
+SELECT extension, officeCode
+FROM employees
+WHERE officeCode %2 != 0		# odd office codes
+ORDER BY firstName;
+
+# Question 9: Employees with Even-Numbered Office Codes:
+/*
+Write a query to retrieve the extensions and office codes of all the employees having an even-numbered office code. 
+Arrange them in the alphabetical order of their first names.
+*/
+SELECT extension, officeCode
+FROM employees
+WHERE officeCode %2 = 0		# even office codes
+ORDER BY firstName;
+
+# Question 10: Lucky Employees:
+/*
+Write a query to retrieve all the details of employees who don't report to anyone. 
+Arrange them in the increasing order of their employee numbers.
+*/
+SELECT *
+FROM employees
+WHERE reportsTo IS NULL
+ORDER BY employeeNumber;
+
