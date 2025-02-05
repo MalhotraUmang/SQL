@@ -286,19 +286,19 @@ WHERE cus.customerName = 'Euro+ Shopping Channel';
 SELECT MONTHNAME(paymentDate) AS payment_month
 FROM payments
 GROUP BY payment_month
-ORDER BY SUM(amount)
+ORDER BY SUM(amount) DESC
 LIMIT 1;
-# January
+# December
 
 -- Q-16: What is the aggregated value of the payment recieved from that month?
 SELECT SUM(amount) AS month_wise_payments
 FROM payments
 GROUP BY MONTHNAME(paymentDate)
-ORDER BY month_wise_payments
+ORDER BY month_wise_payments DESC
 LIMIT 1;
-# 397887.81
+# 1645923.26
 
--- A: Option C: January, 397887
+-- A: Option B: December, 1645923
 
 
 -- Q-17: What is the shipped date of the maximum quantity ordered for "1968 Ford Mustang" product name?
@@ -323,14 +323,56 @@ ORDER BY quantity_ordered DESC
 LIMIT 1;
 # 09-09-2003 00:00:00
 
+-- without joins and only nested queries
+SELECT shippedDate 																				# shippedDate of orderNumber of max quantity of product '1968 Ford Mustang' (09-09-2003 00:00:00)
+FROM orders
+WHERE orderNumber =	( SELECT orderNumber 														# orderNumber of max quantity of product '1968 Ford Mustang' (10147)
+					FROM	( SELECT quantityOrdered, orderNumber 
+							FROM orderdetails 
+                            WHERE productCode = 	( SELECT productCode 						# productCode of product '1968 Ford Mustang' (S12_1099)
+													FROM products 
+                                                    WHERE productName = '1968 Ford Mustang'
+                                                    )
+							) max
+					WHERE quantityOrdered =	(SELECT MAX(quantityOrdered) 						# max quantity of product '1968 Ford Mustang' (48)
+											FROM orderdetails 
+                                            WHERE productCode =	(SELECT productCode 			# productCode of product '1968 Ford Mustang' (S12_1099)
+																FROM products 
+                                                                WHERE productName = '1968 Ford Mustang'
+                                                                )
+											)
+					);
+
 -- A: Option C: 09-09-2003
 
 
 -- Q-18: Inner join:  What is the average value of credit limit corresponds to the customers which have been contacted by the employees with their office located in “Tokyo” city? 
+
+-- using only joins
+SELECT AVG(c.creditLimit) AS avg_credit_limit
+FROM customers c INNER JOIN employees e ON c.salesRepEmployeeNumber = e.employeeNumber INNER JOIN offices o USING (officeCode)
+WHERE office_city = 'Tokyo';
+# 83900.00
+
 -- using inner join and nested query
-SELECT AVG(c. creditLimit) AS avg_credit_limit
+SELECT AVG(c.creditLimit) AS avg_credit_limit
 FROM customers c INNER JOIN employees e ON c.salesRepEmployeeNumber = e.employeeNumber
-WHERE c. salesRepEmployeeNumber IN (SELECT salesRepEmployeeNumber FROM customers WHERE state = 'Tokyo');
+WHERE officeCode =	( SELECT officeCode
+					FROM offices
+                    WHERE office_city = 'Tokyo'
+                    );
+# 83900.00
+
+-- using only nested queries
+SELECT AVG(creditLimit) AS avg_credit_limit										# avg creditLimit of salesRepEmployeeNumber same as employeeNumber with officeCode of office_city 'Tokyo' (83900)
+FROM customers
+WHERE salesRepEmployeeNumber IN	( SELECT employeeNumber							# salesRepEmployeeNumber same as employeeNumber with officeCode of office_city 'Tokyo' (1621)
+								FROM employees
+                                WHERE officeCode =	( SELECT officeCode			# officeCode of office_city 'Tokyo' (5)
+													FROM offices
+                                                    WHERE office_city = 'Tokyo'
+                                                    )
+								);
 # 83900.00
 
 -- A: Option D: 83900
@@ -381,15 +423,25 @@ WHERE jobTitle = 'VP Marketing';
 -- A: Option C: San Francisco
 
 
--- Q-21: What is the name of the customer who belongs to ‘France’ and has the maximum creditLimit among the customers in France?
+-- Q-21: What is the name of the customer who belongs to ‘USA’ and has the maximum creditLimit among the customers in USA?
+
+-- using ORDER BY and LIMIT
 SELECT customerName
 FROM customers
-WHERE country = 'France'
+WHERE country = 'USA'
 ORDER BY creditLimit DESC
 LIMIT 1;
-# Saveley & Henriot, Co.
+# Mini Gifts Distributors Ltd.
 
--- A: Options are not matching
+-- using nested queries
+SELECT customerName								# customerName with max creditLimit among customers from USA
+FROM customers
+WHERE creditLimit =	(SELECT MAX(creditLimit) 	# max creditLimit among customers from USA
+					FROM customers 
+					WHERE country = 'USA');		# customers expected from USA
+# Mini Gifts Distributors Ltd.
+
+-- A: Option D: Mini Gifts Distributors Ltd.
 
 
 -- Q-22: What will be the remaining stock of the product code that equals ‘S18_1589’ if it is sent to all the customers who have demanded it?
@@ -416,18 +468,27 @@ quantity_ordered AS (
 	SELECT SUM(quantityOrdered) AS Ordered_Stock
 	FROM orderdetails
 	WHERE productCode = 'S18_1589')
-SELECT Available_Stock-Ordered_Stock FROM stock_available, quantity_ordered;
+SELECT Available_Stock - Ordered_Stock FROM stock_available, quantity_ordered;
 # 8692 (9042 - 350)
 
 -- A: Option A: 8692
 
 
 -- Q-23: What is the average amount paid by the customer 'Mini Gifts Distributors Ltd.'?
-SELECT AVG(amount) AS avg_amount_per_customer, customerName
+
+-- without using a join
+SELECT AVG(amount) AS avg_amount_per_customer
 FROM payments, customers
 WHERE customerName = 'Mini Gifts Distributors Ltd.' AND payments.customerNumber = customers.customerNumber
 GROUP BY customerName;
-# 64909.80
+# 64909.804444
+
+-- using a join
+SELECT AVG(amount) AS avg_amount_per_customer
+FROM payments JOIN customers USING (customerNumber)
+WHERE customerName = 'Mini Gifts Distributors Ltd.'
+GROUP BY customerName;
+# 64909.804444
 
 -- A: Option B: 64910
 
